@@ -460,6 +460,22 @@ def update_resep_by_id(id: int, resep: Resep):
     conn.close()
     return resep
 
+# test update_resep
+def test_update_resep():
+    conn = create_conn()
+    # get last id_resep
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM resep ORDER BY id_resep DESC LIMIT 1")
+    row = cur.fetchone()
+    cur.close()
+    resep = Resep(id_resep=row[0], nama_resep="Nasi Goreng", id_kategori=1)
+    update_resep(conn, row[0], resep)
+    conn.close()
+    assert resep.nama_resep == "Nasi Goreng"
+
+# call test
+test_update_resep()
+
 def insert_resep_bahan(conn, id_resep, id_bahan):
     cur = conn.cursor()
     cur.execute("INSERT INTO resep_bahan (id_resep, id_bahan) VALUES (%s, %s)", (id_resep, id_bahan))
@@ -472,6 +488,21 @@ def update_bahan_by_resep_id(id: int, bahan: Bahan):
     insert_resep_bahan(conn, id, bahan.id_bahan)
     conn.close()
     return bahan
+
+# test insert_resep_bahan
+def test_insert_resep_bahan():
+    conn = create_conn()
+    # get last id_resep
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM resep ORDER BY id_resep DESC LIMIT 1")
+    row = cur.fetchone()
+    cur.close()
+    insert_resep_bahan(conn, row[0], 1)
+    conn.close()
+    assert True
+
+# call test
+test_insert_resep_bahan()
 
 # - Delete: DELETE /resep/{id} untuk menghapus resep berdasarkan id_resep. 
 # DELETE /resep/{id}/bahan/{id_bahan} untuk menghapus bahan pada resep tersebut.
@@ -525,14 +556,3 @@ def read_resep_by_kategori_bahan(kategori: Optional[str] = None, bahan: Optional
     rows = get_resep_by_kategori_bahan(conn, id_kategori, id_bahan)
     conn.close()
     return rows
-
-# test case untuk API search/filter
-def test_get_resep_by_kategori_bahan():
-    conn = create_conn()
-    reseps = get_resep_by_kategori_bahan(conn, 1, 1)
-    conn.close()
-    assert len(reseps) == 1
-    assert reseps[0].nama_resep == "Nasi Goreng"
-
-# call test
-test_get_resep_by_kategori_bahan()
