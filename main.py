@@ -445,6 +445,20 @@ def read_bahan_by_resep_id(id: int):
     conn.close()
     return rows
 
+# test get_bahan_by_resep_id
+def test_get_bahan_by_resep_id():
+    conn = create_conn()
+    # get last id_resep
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM resep ORDER BY id_resep DESC LIMIT 1")
+    row = cur.fetchone()
+    cur.close()
+    resep = get_resep_by_id(conn, row[0])
+    assert resep.nama_resep == "Nasi Goreng"
+
+# call test
+test_get_bahan_by_resep_id()
+
 # - Update: PUT /resep/{id} dengan request body berisi nama_resep dan/atau id_kategori yang baru. 
 # PUT /resep/{id}/bahan dengan request body berisi id_bahan yang baru untuk menambahkan bahan pada resep tersebut.
 def update_resep(conn, id_resep, resep):
@@ -505,7 +519,6 @@ def test_insert_resep_bahan():
 test_insert_resep_bahan()
 
 # - Delete: DELETE /resep/{id} untuk menghapus resep berdasarkan id_resep. 
-# DELETE /resep/{id}/bahan/{id_bahan} untuk menghapus bahan pada resep tersebut.
 def delete_resep(conn, id_resep):
     cur = conn.cursor()
     cur.execute("DELETE FROM resep WHERE id_resep=%s", (id_resep,))
@@ -515,31 +528,17 @@ def delete_resep(conn, id_resep):
 @app.delete("/resep/{id}", response_model=Union[Resep, None])
 def delete_resep_by_id(id: int):
     conn = create_conn()
-    row = get_resep_by_id(conn, id)
+    resep = get_resep_by_id(conn, id)
     delete_resep(conn, id)
     conn.close()
-    return row
-
-def delete_resep_bahan(conn, id_resep, id_bahan):
-    cur = conn.cursor()
-    cur.execute("DELETE FROM resep_bahan WHERE id_resep=%s AND id_bahan=%s", (id_resep, id_bahan))
-    conn.commit()
-    cur.close()
-
-@app.delete("/resep/{id}/bahan/{id_bahan}", response_model=Union[Bahan, None])
-def delete_bahan_by_resep_id(id: int, id_bahan: int):
-    conn = create_conn()
-    row = get_bahan_by_id(conn, id_bahan)
-    delete_resep_bahan(conn, id, id_bahan)
-    conn.close()
-    return row
-
+    return resep    
 
 # 4. API untuk menampilkan list/index/read resep berdasarkan search/filter bahan dan kategori yang digunakan:
-# - GET /resep?kategori={nama_kategori}&bahan={nama_bahan} untuk menampilkan resep berdasarkan kategori dan/atau bahan yang digunakan.
-def get_resep_by_kategori_bahan(conn, id_kategori, id_bahan):
+# - untuk menampilkan resep berdasarkan kategori dan/atau bahan yang digunakan.
+# GET /filter?kategori={id_kategori}&bahan={id_bahan}
+def get_resep_by_filter(conn, kategori, bahan):
     cur = conn.cursor()
-    cur.execute("SELECT * FROM resep WHERE id_kategori=%s AND id_resep IN (SELECT id_resep FROM resep_bahan WHERE id_bahan=%s)", (id_kategori, id_bahan))
+    cur.execute("SELECT * FROM resep WHERE id_kategori=%s AND id_bahan", (kategori,bahan))
     rows = cur.fetchall()
     cur.close()
     reseps = []
@@ -548,11 +547,24 @@ def get_resep_by_kategori_bahan(conn, id_kategori, id_bahan):
         reseps.append(resep)
     return reseps
 
-@app.get("/resep", response_model=List[Union[Resep, None]])
-def read_resep_by_kategori_bahan(kategori: Optional[str] = None, bahan: Optional[str] = None):
+@app.get("/filter", response_model=List[Union[Resep, None]])
+def read_resep_by_filter(kategori: int, bahan: int):
     conn = create_conn()
-    id_kategori = get_kategori_by_nama(conn, kategori).id_kategori
-    id_bahan = get_bahan_by_nama(conn, bahan).id_bahan
-    rows = get_resep_by_kategori_bahan(conn, id_kategori, id_bahan)
+    rows = get_resep_by_filter(conn, kategori, bahan)
     conn.close()
     return rows
+
+# test get_resep_by_filter
+def test_get_resep_by_filter():
+    conn = create_conn()
+    # get last id_resep
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM resep ORDER BY id_resep DESC LIMIT 1")
+    row = cur.fetchone()
+    cur.close()
+    resep = get_resep_by_id(conn, row[0])
+    assert resep.nama_resep == "Nasi Goreng"
+
+# call test
+test_get_resep_by_filter()
+
